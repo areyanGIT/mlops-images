@@ -1,0 +1,118 @@
+name: Build PyTorch Image 2.4.0-python3.10-cuda12.4.1-cudnn-devel-ubuntu22.04 to docker hub
+
+on:
+  workflow_dispatch:     # 允许手动触发工作流，适用于测试和调试。
+
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment:
+      name:  dockerhub   # harbor环境名称
+    steps:
+      - name: Checkout Code    #用于将代码仓库中的代码检出到工作流的虚拟环境中
+        uses: actions/checkout@v3
+        with:
+          repository: areyanGIT/mlops-images    # 指定要检出的仓库
+          ref: main-test    # 从 main 分支检出代码
+
+      - name: Echo github workspace    # 打印出 GitHub Actions 的 GITHUB_WORKSPACE 环境变量的值。它指向 GitHub Actions 工作流运行时的工作空间目录，即代码被检出到的目录
+        run: |
+          echo "GITHUB_WORKSPACE is: $GITHUB_WORKSPACE"
+          echo "Current directory:"
+          pwd  # 打印当前工作目录
+          echo "Listing files in the workspace:"
+          ls -la  # 列出当前目录下的所有文件和文件夹
+
+      - name: Echo github workspace    # 打印出 GitHub Actions 的 GITHUB_WORKSPACE 环境变量的值。它指向 GitHub Actions 工作流运行时的工作空间目录，即代码被检出到的目录
+        run: |
+          echo "GITHUB_WORKSPACE is: $GITHUB_WORKSPACE"
+          echo "Current directory:"
+          pwd  # 打印当前工作目录
+          echo "Listing files in the workspace:"
+          ls -la  # 列出当前目录下的所有文件和文件夹         
+
+      - name: Create and Overwrite build-scripts.sh
+        run: |
+          cd pytorch # 进入工作目录
+          ls -la  # 列出当前目录下的所有文件和文件夹
+          cat << 'EOF' > build-scripts.sh
+          #!/bin/sh
+          
+          # 按照自己的需要，是否支持GPU/CUDA版本等选择基础镜像
+          # 如果是用构建支持GPU的，使用nvidia/cuda作为基础镜像；如果仅支持CPU，ubuntu作为基础镜像
+          # 例如：GPU的：nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04，仅支持CPU的：ubuntu22.04
+          
+          BASE_IMAGE=nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+          
+          PYTHON_VERSION=3.10
+          # miniconda的安装包均放在：https://repo.anaconda.com/miniconda/。根据要安装的python版本、操作系统，选择对应的miniconda安装包。
+          MINICONDA_PKG=Miniconda3-py310_24.7.1-0-Linux-x86_64.sh
+          
+          #根据官方对应pytorch pip安装命令中指定https://pytorch.org/get-started/previous-versions/，国外源地址下载较慢，有需要的话可以考虑换成国内源，但是有些国内源不全，不一定有对应版本
+          # PYTORCH参数
+          PYTORCH_LATEST=false
+          PYTORCH_VERSION=2.4.0
+          PYTORCH_VERSION_SUFFIX=
+          TORCHVISION_VERSION=0.19.0
+          TORCHVISION_VERSION_SUFFIX=
+          TORCHAUDIO_VERSION=2.4.0
+          TORCHAUDIO_VERSION_SUFFIX=
+          PYTORCH_DOWNLOAD_URL=https://download.pytorch.org/whl/cu124
+          
+          # 构建后的镜像tag，需要体现pytorch、python、基础镜像版本信息
+          IMAGE_TAG=${PYTORCH_VERSION}-python${PYTHON_VERSION}-cuda12.4.1-cudnn-devel-ubuntu22.04
+          
+          # copy init文件到当前目录
+          cp  -r ../common/init ./init
+          
+          docker build \
+              --build-arg BASE_IMAGE=${BASE_IMAGE} \
+              --build-arg PYTHON_VERSION=${PYTHON_VERSION} \
+              --build-arg MINICONDA_PKG=${MINICONDA_PKG} \
+              --build-arg PYTORCH_LATEST=${PYTORCH_LATEST} \
+              --build-arg PYTORCH_VERSION=${PYTORCH_VERSION} \
+              --build-arg PYTORCH_VERSION_SUFFIX=${PYTORCH_VERSION_SUFFIX} \
+              --build-arg TORCHVISION_VERSION=${TORCHVISION_VERSION} \
+              --build-arg TORCHVISION_VERSION_SUFFIX=${TORCHVISION_VERSION_SUFFIX} \
+              --build-arg TORCHAUDIO_VERSION=${TORCHAUDIO_VERSION} \
+              --build-arg TORCHAUDIO_VERSION_SUFFIX=${TORCHAUDIO_VERSION_SUFFIX} \
+              --build-arg PYTORCH_DOWNLOAD_URL=${PYTORCH_DOWNLOAD_URL} \
+              -t pytorch:${IMAGE_TAG}\
+              -f ./Dockerfile \
+              .
+          EOF
+          
+          chmod +x build-scripts.sh
+
+      - name: Show Created build-scripts.sh
+        run: |
+          pwd # 打印当前工作目录
+          cd pytorch # 进入工作目录
+          ls -la  # 列出当前目录下的所有文件和文件夹
+          cat build-scripts.sh
+
+      - name: Execute build-scripts.sh
+        run: |
+          cd pytorch # 进入工作目录
+          pwd # 打印当前工作目录
+          ls -la  # 列出当前目录下的所有文件和文件夹
+          cat ./Dockerfile
+          ./build-scripts.sh
+
+      - name: Show Docker Image Tag
+        id: image_tag
+        run: |
+          IMAGE_NAME=$(docker images | grep "pytorch" | awk '{print $1":"$2}')
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_OUTPUT
+
+#      - name: Login to Harbor Registry
+#        run: |
+#          docker login -u ${{ secrets.HARBOR_USERNAME }} -p ${{ secrets.HARBOR_PASSWORD }}
+#
+#      - name: Tag and Push Image to Harbor
+#        run: |
+#          IMAGE_NAME=${{ steps.image_tag.outputs.IMAGE_NAME }}
+#          OBJ_IMAGE_NAME=${{ secrets.HARBOR_USERNAME }}/$IMAGE_NAME
+#          docker tag $IMAGE_NAME  $OBJ_IMAGE_NAME
+#          docker push $OBJ_IMAGE_NAME
