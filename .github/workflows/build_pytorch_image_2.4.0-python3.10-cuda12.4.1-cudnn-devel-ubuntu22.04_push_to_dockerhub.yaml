@@ -1,6 +1,9 @@
 name: Build PyTorch Image 2.4.0-python3.10-cuda12.4.1-cudnn-devel-ubuntu22.04 to docker hub
 
 on:
+  push:
+    branches:
+      - main--test
   workflow_dispatch:     # 允许手动触发工作流，适用于测试和调试。
 
 
