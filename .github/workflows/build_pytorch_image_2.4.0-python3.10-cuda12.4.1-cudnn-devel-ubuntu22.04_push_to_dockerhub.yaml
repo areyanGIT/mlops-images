@@ -1,9 +1,9 @@
 name: Build PyTorch Image 2.4.0-python3.10-cuda12.4.1-cudnn-devel-ubuntu22.04 to docker hub
 
 on:
-#  push:
-#    branches:
-#      - main-test
+  push:
+    branches:
+      - main-test
   workflow_dispatch:     # 允许手动触发工作流，适用于测试和调试。
 
 
@@ -109,13 +109,13 @@ jobs:
           IMAGE_NAME=$(docker images | grep "pytorch" | awk '{print $1":"$2}')
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
-#      - name: Login to Harbor Registry
-#        run: |
-#          docker login -u ${{ secrets.HARBOR_USERNAME }} -p ${{ secrets.HARBOR_PASSWORD }}
-#
-#      - name: Tag and Push Image to Harbor
-#        run: |
-#          IMAGE_NAME=${{ steps.image_tag.outputs.IMAGE_NAME }}
-#          OBJ_IMAGE_NAME=${{ secrets.HARBOR_USERNAME }}/$IMAGE_NAME
-#          docker tag $IMAGE_NAME  $OBJ_IMAGE_NAME
-#          docker push $OBJ_IMAGE_NAME
+      - name: Login to Harbor Registry
+        run: |
+          docker login -u ${{ secrets.HARBOR_USERNAME }} -p ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: Tag and Push Image to Harbor
+        run: |
+          IMAGE_NAME=${{ steps.image_tag.outputs.IMAGE_NAME }}
+          OBJ_IMAGE_NAME=${{ secrets.HARBOR_USERNAME }}/$IMAGE_NAME
+          docker tag $IMAGE_NAME  $OBJ_IMAGE_NAME
+          docker push $OBJ_IMAGE_NAME
