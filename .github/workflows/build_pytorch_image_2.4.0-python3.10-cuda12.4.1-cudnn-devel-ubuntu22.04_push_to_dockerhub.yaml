@@ -115,7 +115,11 @@ jobs:
 
       - name: Tag and Push Image to Harbor
         run: |
+          IMAGES=$(docker images --format "{{.Repository}}:{{.Tag}}")
+          echo "List of Docker images:"
+          echo "$IMAGES"
           IMAGE_NAME=${{ steps.image_tag.outputs.IMAGE_NAME }}
           OBJ_IMAGE_NAME=${{ secrets.HARBOR_USERNAME }}/$IMAGE_NAME
+          echo "value of OBJ_IMAGE_NAME is: $OBJ_IMAGE_NAME"
           docker tag $IMAGE_NAME  $OBJ_IMAGE_NAME
           docker push $OBJ_IMAGE_NAME
